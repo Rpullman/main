@@ -1,0 +1,113 @@
+Sub FindSpoorthiReport_Save()
+Dim objNamespace As Outlook.NameSpace
+Dim olShareName As Outlook.Recipient
+Dim myDestFolder As Outlook.Folder
+Dim objFolder As Outlook.MAPIFolder
+Dim DestFolder As Outlook.MAPIFolder
+Dim filteredItems As Outlook.Items
+Dim itm As Object
+Dim Found As Boolean
+Dim strFilter As String
+Dim mon As String
+Dim ObjAtt As Outlook.Attachment
+Dim AttachNames() As String
+Dim AttachmentNm As String
+Dim FY As String
+Dim Month As String
+
+'MsgBox "You are about to run the IR Returns process ", vbOKOnly
+
+mon = Format(Date - 30, "mmmm")
+On Error Resume Next
+Kill ("J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns File\IR Returns.xls")
+On Error GoTo 0
+Set objNamespace = Application.GetNamespace("MAPI")
+Set olShareName = objNamespace.CreateRecipient("rpullman@coach.com")
+Set objFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderInbox)
+Set DestFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderToDo)
+
+strFilter = "@SQL=" & Chr(34) & "urn:schemas:httpmail:subject" & Chr(34) & " like '%RE: FA SKU RETURNS TO FULL PRICE%'"
+
+Set filteredItems = objFolder.Items.Restrict(strFilter)
+
+If filteredItems.Count = 0 Then
+    Debug.Print "No emails found"
+    Found = False
+Else
+    Found = True
+    ' this loop displays the list of emails by subject in the debug console and saves the attachments to the specified folder
+Dim i As Variant
+i = filteredItems.Count - 1
+Debug.Print filteredItems.Count
+
+ReDim AttachNames(i) As String
+i = 0
+For Each itm In filteredItems
+
+    Debug.Print itm.Subject
+    Debug.Print itm.Attachments.Count
+    Debug.Print itm.ReceivedTime
+    
+
+    '### Loop here stores the filenames of the attachments, if any, in each of the emails found, save them as "[Mon] Acting / Additional Bonus (1 to n).xlsx"
+For Each ObjAtt In itm.Attachments
+    ObjAtt.SaveAsFile "J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns File\IR Returns.xls"
+    AttachNames(i) = ObjAtt.FileName
+    Debug.Print ObjAtt.FileName
+    
+  '########## When this is handed off to another division this filepath will need to be updated to a location the department has access to
+Next
+    i = i + 1
+    Next
+End If
+'If the subject isn't found:
+If Not Found Then
+    'NoResults.Show
+Else
+   Debug.Print "Found " & filteredItems.Count & " items."
+   
+End If
+'Open aggregation document then each Attachment document in Excel and combine them
+Dim endrow As String
+Dim AggendRow
+'Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\Acting Mgr Assignment Bonus.xlsx")
+'Call openExcel
+Dim xlapp As Object
+Set xlapp = CreateObject("Excel.Application")
+Dim dayte As String
+dayte = Date
+With xlapp
+.Visible = True
+.EnableEvents = False
+'.DisplayAlerts = False
+'.ScreenUpdating = False
+.Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\Payroll Award File Process.xlsm")
+.Worksheets("Sheet1").Activate
+FY = .Range("Year_Num").Value
+Month = .Range("Mon_Name").Value
+.Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns Template.xlsm")
+i = -1
+.Worksheets("IR Returns").Activate
+.Range("MonthName").Value = Month
+.Range("Fisc_Yr").Value = FY
+.Range("Date_Update").Value = dayte
+.Workbooks("Payroll Award File Process.xlsm").Close SaveChanges:=False
+'For Each x In AttachNames
+ '   i = i + 1
+  '  If AttachNames(i) <> "" Then
+  '      .Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns File\IR Returns.xls")
+   '     Else: End If
+'Next
+On Error GoTo Swell
+.Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns File\IR Returns.xls")
+On Error GoTo 0
+.DisplayAlerts = True
+.ScreenUpdating = True
+.Workbooks("IR Returns Template.xlsm").Activate
+End With
+Exit Sub
+
+Swell:
+MsgBox "There was no IR Returns.xls file found by the macro, please just find Spoorthi's Latest E-mail and save to: J:\Retail Finance\Varicent\General Teamshare Resources\IR Returns File\IR Returns.xls"
+Resume Next
+End Sub
