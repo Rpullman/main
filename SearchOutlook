@@ -1,0 +1,57 @@
+Sub Search_Inbox()
+
+'This subroutine searchest the Retail Finance Inbox for the prior month's Acting / Additional Bonus forms
+'Then it saves the attachments, opens and aggregates them into one monthly file for payroll processing
+
+Dim objNamespace As Outlook.NameSpace
+Dim olShareName As Outlook.Recipient
+Dim myDestFolder As Outlook.Folder
+Dim objFolder As Outlook.MAPIFolder
+Dim DestFolder As Outlook.MAPIFolder
+Dim filteredItems As Outlook.Items
+Dim itm As Object
+Dim Found As Boolean
+Dim strFilter As String
+Dim mon As String
+Dim ObjAtt As Outlook.Attachment
+Dim AttachFiles() As String
+
+mon = Format(Date - 30, "mmmm")
+
+Set objNamespace = Application.GetNamespace("MAPI")
+Set olShareName = objNamespace.CreateRecipient("rfin@coach.com")   'contains secondary address
+Set objFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderInbox)
+Set DestFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderToDo)
+
+strFilter = "@SQL=" & Chr(34) & "urn:schemas:httpmail:subject" & Chr(34) & " like '%February Acting Bonus%'"
+
+Set filteredItems = objFolder.Items.Restrict(strFilter)
+
+If filteredItems.Count = 0 Then
+    Debug.Print "No emails found"
+    Found = False
+Else
+    Found = True
+'this loop displays the list of emails by subject in the debug console and saves the attachments to the specified folder
+    
+For Each itm In filteredItems
+    Debug.Print itm.Subject
+    Debug.Print itm.Attachments.Count
+    '### Insert code here to Open the attachments with .xlsx extensions, if any, in each of the emails found, save them as "[Mon] Acting / Additional Bonus (1 to n).xlsx"
+   
+For Each ObjAtt In itm.Attachments
+  'If (Attachments.Type = olByValue) Or (Attachments.Type = olEmbeddeditem) Then
+    ObjAtt.SaveAsFile "c:\users\rpullman\desktop\" & ObjAtt.FileName
+  'End If
+Next
+        
+    Next
+End If
+'If the subject isn't found:
+If Not Found Then
+    'NoResults.Show
+Else
+   Debug.Print "Found " & filteredItems.Count & " items."
+   
+End If
+End Sub
