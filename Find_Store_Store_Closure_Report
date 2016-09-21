@@ -1,0 +1,135 @@
+Sub FindStoreClosureReport_Save()
+'Formerly FindIreneReport_Save()
+Dim objNamespace As Outlook.NameSpace
+Dim olShareName As Outlook.Recipient
+Dim myDestFolder As Outlook.Folder
+Dim objFolder As Outlook.MAPIFolder
+Dim DestFolder As Outlook.MAPIFolder
+Dim filteredItems As Outlook.Items
+Dim itm As Object
+Dim Found As Boolean
+Dim strFilter As String
+Dim Month As String
+Dim ObjAtt As Outlook.Attachment
+Dim AttachNames() As String
+Dim AttachmentNm As String
+Dim OlFileType As String
+Dim Str_Adj_Tem As String
+Str_Adj_Tem = "Closed"
+Dim FY_Val As String
+Dim fso As FileSystemObject
+Set fso = New FileSystemObject
+Dim GetToTheChoppa As String
+
+
+'########## When this is handed off to another division the filepaths access will need to be provisioned for the new group
+
+MsgBox "The most recent Store Closing(s) email will be found in your inbox, the excel file attachment will be saved to the network path: 'J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\'. Please close out of Excel files prior to running this. The file will open momentarily when the process is complete", vbOKOnly
+
+Month = Format(Date - 30, "mmmm")
+
+Set objNamespace = Application.GetNamespace("MAPI")
+Set olShareName = objNamespace.CreateRecipient("rpullman@coach.com")
+Set objFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderInbox)
+Set DestFolder = objNamespace.GetSharedDefaultFolder(olShareName, olFolderToDo)
+
+'strFilter = "@SQL=" & Chr(34) & "urn:schemas:httpmail:subject" & Chr(34) & "Store Closures E-Mail"
+strFilter = "@SQL=" & Chr(34) & "urn:schemas:httpmail:subject" & Chr(34) & " like '%Store Closures E-Mail%'"
+'strFilter = "@SQL=" & Chr(34) & "urn:schemas:httpmail:subject" & Chr(34) & " like '%Store Closing%'"
+
+Set filteredItems = objFolder.Items.Restrict(strFilter)
+
+If filteredItems.Count = 0 Then
+    Debug.Print "No emails found"
+    Found = False
+Else
+    Found = True
+Dim i As Variant
+i = filteredItems.Count - 1
+ReDim AttachNames(i) As String
+i = 0
+z = 0
+For Each itm In filteredItems
+'z = z + 1
+'If z > 1 Then GoTo The_End Else
+    Debug.Print itm.Subject
+    Debug.Print itm.Attachments.Count
+    Debug.Print itm.SentOn
+    Debug.Print itm.ReceivedTime
+
+    '### Loop here stores the attachment, if it's an .xls or .xlsx file, in the Store Closings Directory
+    Dim xlapp As Object
+    Set xlapp = CreateObject("Excel.Application")
+For Each ObjAtt In itm.Attachments
+    OlFileType = LCase$(Right$(ObjAtt.FileName, 4))
+Select Case OlFileType
+    Case ".xls", "xlsx"
+    If fso.FileExists("J:\Retail Finance\Varicent\General Teamshare Resources\" & ObjAtt.FileName) Then
+
+    Kill "J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\" & ObjAtt.FileName
+    ObjAtt.SaveAsFile "J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\" & ObjAtt.FileName
+    GetToTheChoppa = ObjAtt.FileName
+    
+    Else
+        ObjAtt.SaveAsFile "J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\" & ObjAtt.FileName
+        GetToTheChoppa = ObjAtt.FileName
+    End If
+    
+'add commands here to open the newly saved attachment in excel
+'With xlApp
+    '.Workbooks.Open "J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\" & ObjAtt.FileName
+'End With
+    AttachNames(i) = ObjAtt.FileName
+    Debug.Print ObjAtt.FileName
+    Case Else
+End Select
+    i = i + 1
+    Next
+'If the subject isn't found:
+If Not Found Then
+    'NoResults.Show
+Else
+   Debug.Print "Found " & filteredItems.Count & " items."
+   
+End If
+'Open aggregation document then each Attachment document in Excel and combine them
+Dim endrow As String
+Dim AggendRow
+'Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\Acting Mgr Assignment Bonus.xlsx")
+'Call openExcel
+With xlapp
+'.Visible = True
+If mon <> "" Then
+    FY_Val = .InputBox("What is the 4-Digit Fiscal Year?")
+End If
+.EnableEvents = False
+.DisplayAlerts = False
+.ScreenUpdating = False
+If Str_Adj_Tem = "Closed" Then
+'.Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\Store Adjustments Template.xlsm")
+'Str_Adj_Tem = "Open"
+Else: End If
+i = -1
+For Each x In AttachNames
+    i = i + 1
+    If AttachNames(i) <> "" Then
+        Else: End If
+Next
+.DisplayAlerts = True
+.ScreenUpdating = True
+'.Workbooks("Store Adjustments Template.xlsm").Activate
+End With
+Next
+End If
+
+The_End:
+With xlapp
+.EnableEvents = True
+.DisplayAlerts = True
+.ScreenUpdating = True
+.Visible = True
+.Workbooks.Open ("J:\Retail Finance\Varicent\General Teamshare Resources\Store Closings\" & GetToTheChoppa)
+'.Worksheets(month & " " & FY_Val).Activate
+End With
+MsgBox "Store_Closings file Updated"
+End Sub
